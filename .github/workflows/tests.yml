@@ -49,6 +49,10 @@ jobs:
            LDFLAGS=$(pkg-config --libs libbson-static-1.0) \
            python setup.py build_ext --inplace --force
         working-directory: ./bindings/python
+      - name: ldd
+        run: |
+          ldd pymongoarrow/lib.cpython-38-x86_64-linux-gnu.so
+        working-directory: ./bindings/python
       - name: Test
         run: LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/ python -m unittest discover test
         working-directory: ./bindings/python
