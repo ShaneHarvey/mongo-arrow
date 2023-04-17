@@ -168,7 +168,7 @@ class TestExplicitPandasApi(PandasTestBase):
                 return datetime.datetime(1970, 1, 1)
             return k.replace(tzinfo=None)
 
-        data["datetime"] = data.apply(lambda row: new_replace(row["datetime"]), axis=1)
+        # data["datetime"] = data.apply(lambda row: new_replace(row["datetime"]), axis=1)
 
         self.round_trip(
             data,

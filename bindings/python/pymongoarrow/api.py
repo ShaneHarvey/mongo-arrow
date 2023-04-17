@@ -14,12 +14,13 @@
 import warnings
 
 import numpy as np
+import pandas
 import pymongo.errors
 from bson import encode
 from bson.codec_options import TypeEncoder, TypeRegistry
 from bson.raw_bson import RawBSONDocument
 from numpy import ndarray
-from pandas import NA, DataFrame
+from pandas import NA, DataFrame, NaT
 from pyarrow import Schema as ArrowSchema
 from pyarrow import Table
 from pymongo.bulk import BulkWriteError
@@ -308,7 +309,7 @@ def _tabular_generator(tabular):
             return
 
 
-class _PandasNACodec(TypeEncoder):
+class _PandasNAEncoder(TypeEncoder):
     """A custom type codec for Pandas NA objects."""
 
     @property
@@ -317,6 +318,25 @@ class _PandasNACodec(TypeEncoder):
 
     def transform_python(self, _):
         """Transform an NA object into 'None'"""
+        return None
+
+
+def _fallback_encoder(value):
+    """ "Custom type encoder to handle null/missing values like pandas.NaT."""
+    if pandas.isna(value):
+        return None
+    return value
+
+
+class _PandasNaTEncoder(TypeEncoder):
+    """A custom type codec for Pandas NaT objects."""
+
+    @property
+    def python_type(self):
+        return NaT.__class__
+
+    def transform_python(self, _):
+        """Transform an NaT object into 'None'"""
         return None
 
 
@@ -359,7 +379,9 @@ def write(collection, tabular):
 
     # Handle Pandas NA objects.
     codec_options = collection.codec_options
-    type_registry = TypeRegistry([_PandasNACodec()])
+    type_registry = TypeRegistry(
+        [_PandasNAEncoder(), _PandasNaTEncoder()], fallback_encoder=_fallback_encoder
+    )
     codec_options = codec_options.with_options(type_registry=type_registry)
 
     while cur_offset < tab_size:
